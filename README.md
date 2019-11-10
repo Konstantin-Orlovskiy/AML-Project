@@ -13,3 +13,8 @@ Tasks to be completed:<br>
 • Refining ML algorithms<br>
 • Evaluating model and analysing the results<br>
 • Future work<br>
+<br>
+<br>
+<br>
+P.S.<br>
+Anaconda installation https://towardsdatascience.com/installing-keras-tensorflow-using-anaconda-for-machine-learning-44ab28ff39cb
