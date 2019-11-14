@@ -1,0 +1,10 @@
+Agenda:
+1. Complete the “planning” phase as far as possible. Count in the complexity of each stage as well as iterability timewise.
+2. Assign individual responsibilities for sections of the project
+3. Sort out conventions for how we’re going to work in the github repository: version control, directory structure (data, experiments, model, report), report draft with literature links.
+4. Sid to update the team on goals/results of pre-processing stage.
+
+
+Recommendations from :https://blog.floydhub.com/structuring-and-planning-your-machine-learning-project/
+1. Use the same software/packages/versions. Anaconda installation https://towardsdatascience.com/installing-keras-tensorflow-using-anaconda-for-machine-learning-44ab28ff39cb
+2. Checkpoint ML model versions that perform the best, e.g. parameters. Leaving comments in the code may help.
