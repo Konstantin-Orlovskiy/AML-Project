@@ -8,3 +8,18 @@ Agenda:
 Recommendations from :https://blog.floydhub.com/structuring-and-planning-your-machine-learning-project/
 1. Use the same software/packages/versions. Anaconda installation https://towardsdatascience.com/installing-keras-tensorflow-using-anaconda-for-machine-learning-44ab28ff39cb
 2. Checkpoint ML model versions that perform the best, e.g. parameters. Leaving comments in the code may help.
+
+
+---
+
+meeting notes
+
+1. Each of us is doing his piece on the existing dataset. The goal is to familarise with each stage, time complexity. We do not care about the results at this stage. Everyone explains the team this stage in detail. Sid, Alex B. and Alex G. will play on the existing dataset. K and Scott should learn theoretical side better and play with datasets from the web which do not require cleaning, etc.
+
+2. We need github.
+
+3. Please make notes/comments when you're doing your stage - will need them for a report.
+
+4. The final code must be the best model. We'll do experimentations, they can be put in appendix.
+
+5. Next meeting 21nd November 6pm in Birkbeck labs.
