@@ -1,0 +1,21 @@
+Konstantin's neighbour suggested this below:
+
+***Pre-Processing***
+We clean the data. Scale it.
+
+***Selecting Features***
+It is reitareble with refining algorithms.
+New features may appear here. What I was suggested is to add new column showing the speed of changing of the data volume. It could be that there's an anomaly followed by hacker attack.
+
+***Exploring and Selecting ML Algorithms***
+Select the algorithm depending on the need: regression, classification, etc.
+
+***Refining Algorithms (reitareble)***
+It is reiterable with Selecting Features.
+At this stage we split the train data into two sets: TRAIN-TRAIN and TRAIN-VALIDATE (which needs to be the size of test dataset).
+So we train the model on TRAIN-TRAIN and see the loss function going down, but validation function will go down and then probably up. At this point we'll need to make sure the model is not overfitting to the TRAIN-TRAIN dataset. Here we're playing with parameters to avoid overfitting. For example, the model with 100k neurons will definitely overfit after the first epoch.
+If the performance is bad (don't knwo what is bad here but can compare to existing papers), we move to "Selecting Features" stage and review what can be done differently.
+
+***Evaluating model and analysing the results***
+Only now we check the model performance on the TEST dataset which we were not supposed to touch before this stage :)
+Ideally, the accuracy of the model on TRAIN-VALIDATE and TEST datasets should be nearly similar which means the model is generalized enough.
