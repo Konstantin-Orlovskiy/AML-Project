@@ -90,7 +90,7 @@ def model_evaluator(data):
     rocCurve = fig.add_subplot(spec[0, 1])
     rocCurve.set_aspect('equal')
     rocCurve.plot(fpr, tpr, color='red', lw=2, label = 'ROC area = %0.2f)' % rocAuc )
-    rocCurve.set(xlim = [0.0, 1.0], ylim = [0.0, 1.0], xlabel = 'True Positive Rate (Sensitivity)', ylabel = 'True Positive Rate (Sensitivity)' )
+    rocCurve.set(xlim = [0.0, 1.0], ylim = [0.0, 1.0], xlabel = 'False Positive Rate (1 - Specificity)', ylabel = 'True Positive Rate (Sensitivity)' )
     rocCurve.legend(loc="lower right")
     
     #print report
