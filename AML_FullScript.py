@@ -79,11 +79,12 @@ def FeatureSelection(data):
     fs_output = data[cols_to_use]
 #    fs_output.to_csv(r'FeatureSelectionOutput.csv', index=False)
 #    
-#    # Create csv file with test data and relevant features
-#    fs_test = test[cols_to_use]
+    # Create csv file with test data and relevant features
+    test = Preprocessing(testPath)
+    fs_test = test[cols_to_use]
 #    fs_test.to_csv(r'FeatureSelectionTestOutput.csv', index=False)
     
-    return fs_output
+    return fs_output, fs_test
 
 def ModelSelection(trainData, testData):
     data_train = trainData
@@ -173,13 +174,11 @@ def ModelSelection(trainData, testData):
 
 # Calling the functions sequentially
     
-# Preprocess train and test sets
+# Preprocess data
 trainData = Preprocessing(trainPath)
-testData = Preprocessing(testPath)
 
 # Feature select train and test sets
-FSTrainData = FeatureSelection(trainData)
-FSTestData = FeatureSelection(testData)
+FSTrainData, FSTestData = FeatureSelection(trainData)
 
 # Show results
 ModelSelection(FSTrainData, FSTestData)
