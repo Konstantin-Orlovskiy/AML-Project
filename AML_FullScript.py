@@ -165,6 +165,9 @@ def ModelSelection(trainData, testData):
     print(rf_tuned_cm)
     
     ## RF tuning Results
+    from sklearn.metrics import classification_report
+    report = classification_report(y_test, rf_tuned.predict(X_test))
+    print(report)
     
     print("RF default hyperparameters test accuracy: ", rf_score,', parameters: ', '\n', rf.get_params())
     print('Confusion matrix: ', '\n', rf_cm)
