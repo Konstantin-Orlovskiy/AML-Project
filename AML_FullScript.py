@@ -200,14 +200,28 @@ def ModelTuning(trainData, testData):
     # Apply best values of hyperparameters to the model.
     rf_tuned = rf_random.best_estimator_
     
-    # Train the tuned model on TRAIN set and check the accuracy
+    # Train the tuned model on TRAIN set and check the accuracy 
+    ##Added a couple of lines to capture the time to build the trained model
+    start_time = time.time()
     rf_tuned.fit(X_train, y_train)
+    finish_time = time.time()
+    print("Time to build model: " + str((finish_time - start_time))
+    
     rf_tuned_score = rf_tuned.score(X_test,y_test)
     print(rf_tuned_score)
     
     # Build confusion matrix.
+    start_time = time.time()
     rf_tuned_cm = confusion_matrix(y_test, rf_tuned.predict(X_test))
+    finish_time = time.time()
     print(rf_tuned_cm)
+    ##Added a couple of lines to capture the time to build the test model
+    print("Time to test model: " + str((finish_time - start_time))
+    
+    ###input for model evaluator
+    data = pd.DataFrame(y_test, columns = ['label'])
+    data['predicted'] = rf_tuned.predict(X_test)
+    data['probability'] = rf_tuned.predict_proba(X_test)[:, 1]
     
     ## RF tuning Results
     
@@ -216,24 +230,32 @@ def ModelTuning(trainData, testData):
     print()
     print("RF tuned hyperparameters test accuracy: ", rf_tuned_score,', parameters: ', '\n', rf_tuned.get_params())
     print('Confusion matrix: ', '\n', rf_tuned_cm)
+          
+    return data
 
+          
+##Evaluates the performance of a binary classifier against labelled data.
+# @param model_name - string of model name
+# @param data - a dataframe containing 3 columns: class (binary values), predicted(binary values) and probability (the predicition the model has made for each value, prior to converting to a binary classification, number between 0 and 1).
+          
+# @returns - Confusion matrix plot, ROC curve plot, and a small report.    
     
-def ModelEvaluator(data):  
+def ModelEvaluator((model_name,data):
+                   
+    import numpy as np
+    import pandas as pd
     from sklearn import metrics
-    from sklearn.metrics import confusion_matrix
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
-    from sklearn.metrics import classification_report
     from matplotlib.ticker import FixedLocator, FixedFormatter
-    
-    #partition processed data into vectors
+
+   #partition processed data into vectors
     actualClass = data.label
     predictedClass = data.predicted
-    probability = data.probabilty 
+    probability = data.probability 
     
     #build a confusion matrix
     cm = confusion_matrix(actualClass, predictedClass, labels = [0,1])
-    
     
     TruePositive = cm[1, 1]
     TrueNegative = cm[0,0]
@@ -264,14 +286,24 @@ def ModelEvaluator(data):
     #Calculate the Area under the ROC Curve
     rocAuc = metrics.roc_auc_score(actualClass, probability)
     
+    #Calculate the Michaels Correlation Coefficient
+    mcc = metrics.matthews_corrcoef(actualClass, predictedClass)
+    
     #generate figure
-    fig = plt.figure(figsize = (12, 20))
-    spec = gridspec.GridSpec(ncols=2, nrows=1, wspace=0.5, width_ratios=[1, 1], figure=fig)
+    fig = plt.figure(figsize = (10, 5))
+    spec = gridspec.GridSpec(ncols=2, nrows=2, wspace=0.5, hspace = 0.8, width_ratios=[1, 1], height_ratios = [1, 20],  figure=fig)
+    
+    text = fig.add_subplot(spec[0,0])
+    text.axis('off')
+    text. set_title('%s' % (model_name), fontweight = 'bold', fontsize = 16) 
+    text.text(0,0,'The performance of this model over the null accuracy is %2.2f%%\nModel Sensitivity: %2.6f%% \nModel Specificity: %2.6f%% \nModel F1 Score: %2.6f \nMatthews Correlation Coeffiecient: %2.6f' 
+      % ((performance_over_null *100), (report['1.0']['recall']*100), (specificity*100), (report['1.0']['f1-score']), mcc), bbox=dict(facecolor='white'), verticalalignment="top")
+    
     
     #plot confusion matrix in pos 0,0
     confusionMatrixLabels = ['Normal Traffic', 'Intrusion']
     confusionMatrixColourMap = plt.cm.Blues
-    confusionMatrix = fig.add_subplot(spec[0,0])
+    confusionMatrix = fig.add_subplot(spec[1,0])
     confusionMatrix.set_aspect('equal')
     confusionMatrix.imshow(cm, interpolation = 'nearest', cmap = confusionMatrixColourMap)
     confusionMatrix.set(ylabel ='True class', xlabel ='Predicted class')
@@ -292,14 +324,14 @@ def ModelEvaluator(data):
     tot = sum(data.label)
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
-            confusionMatrix.text(j, i, (format(cm[i, j])),ha ='center', va="baseline", color="white" if cm[i,j] > tot else 'black', size = 'larger')
+            confusionMatrix.text(j, i, (format(cm[i, j])),ha ='center', va="baseline", color="white" if cm[i,j] > (0.5*tot) else 'black', size = 'larger')
     
    
     cmLabels = ['TN', 'FP', 'FN', 'TP' ]
     a = 0
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
-            confusionMatrix.text(j + 0.3, i + 0.4, (cmLabels[a]), ha ='center', va="baseline", color="white" if cm[i,j] > tot else 'black', size = 'larger')
+            confusionMatrix.text(j + 0.3, i + 0.4, (cmLabels[a]), ha ='center', va="baseline", color="white" if cm[i,j] >(0.5*tot) else 'black', size = 'larger')
             if a < 4:
                 a += 1
     a=0          
@@ -311,18 +343,17 @@ def ModelEvaluator(data):
             confusionMatrix.text(j+0.8, i, ('Total:\n %d' % (numberOfPositives)), ha ='center', va="center", color = 'black', size = 'larger')
     
     #plot roc curve in position 0,1 
-    rocCurve = fig.add_subplot(spec[0, 1])
+    rocCurve = fig.add_subplot(spec[1, 1])
     rocCurve.set_aspect('equal')
     rocCurve.plot(fpr, tpr, color='red', lw=2, label = 'ROC area = %0.5f)' % rocAuc )
-    rocCurve.set(xlabel = 'True Positive Rate (Sensitivity)', ylabel = 'True Positive Rate (Sensitivity)' )
+    rocCurve.set(xlabel = 'False Positive Rate (1-Specifcity)', ylabel = 'True Positive Rate (Sensitivity)' )
     rocCurve.legend(loc="lower right")
     
     
-    #print report
-    print('The performance of this model over the null accuracy is %2.2f%%\nModel Sensitivity: %2.6f%% \nModel Specificity: %2.6f%% \nModel F1 Score: %2.6f' 
-      % ((performance_over_null *100), (report['1']['recall']*100), (specificity*100), (report['1']['f1-score'])))
-
-
+    #print(report)
+    #path = '/Users/scotttasker/Documents/Birkbeck/aml/'
+    #fig.savefig(path + '%s.pdf' % (model_name), dpi = 300) 
+ 
 
 # Calling the functions sequentially
     
@@ -339,7 +370,7 @@ ModelSelection(FSTrainData)
 ModelTuning(FSTrainData, FSTestData)
 
 # Show evaluation
-ModelEvaluator(FSTestData)
+ModelEvaluator(#dataframe returned by model tuning)
 
 
 
