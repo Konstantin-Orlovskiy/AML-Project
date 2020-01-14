@@ -205,7 +205,7 @@ def ModelTuning(trainData, testData):
     start_time = time.time()
     rf_tuned.fit(X_train, y_train)
     finish_time = time.time()
-    print("Time to build model: " + str((finish_time - start_time))
+    print("Time to build model: " + str((finish_time - start_time)))
     
     rf_tuned_score = rf_tuned.score(X_test,y_test)
     print(rf_tuned_score)
@@ -216,7 +216,7 @@ def ModelTuning(trainData, testData):
     finish_time = time.time()
     print(rf_tuned_cm)
     ##Added a couple of lines to capture the time to build the test model
-    print("Time to test model: " + str((finish_time - start_time))
+    print("Time to test model: " + str((finish_time - start_time)))
     
     ###input for model evaluator
     data = pd.DataFrame(y_test, columns = ['label'])
@@ -227,7 +227,7 @@ def ModelTuning(trainData, testData):
     
     print("RF default hyperparameters test accuracy: ", rf_score,', parameters: ', '\n', rf.get_params())
     print('Confusion matrix: ', '\n', rf_cm)
-    print()
+#    print()
     print("RF tuned hyperparameters test accuracy: ", rf_tuned_score,', parameters: ', '\n', rf_tuned.get_params())
     print('Confusion matrix: ', '\n', rf_tuned_cm)
           
@@ -240,11 +240,9 @@ def ModelTuning(trainData, testData):
           
 # @returns - Confusion matrix plot, ROC curve plot, and a small report.    
     
-def ModelEvaluator((model_name,data):
-                   
-    import numpy as np
-    import pandas as pd
+def ModelEvaluator(model_name,data): 
     from sklearn import metrics
+    from sklearn.metrics import confusion_matrix
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     from matplotlib.ticker import FixedLocator, FixedFormatter
@@ -367,10 +365,9 @@ FSTrainData, FSTestData = FeatureSelection(trainData)
 ModelSelection(FSTrainData)
 
 # Show results
-ModelTuning(FSTrainData, FSTestData)
+tunedOutput = ModelTuning(FSTrainData, FSTestData)
 
 # Show evaluation
-ModelEvaluator(#dataframe returned by model tuning)
-
+ModelEvaluator('Random Forest', tunedOutput)
 
 
