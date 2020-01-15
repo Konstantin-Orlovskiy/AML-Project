@@ -50,6 +50,7 @@ def Preprocessing(path):
     
     return finalSet
 
+
 def FeatureSelection(data):
     from sklearn.feature_selection import RFE
     from sklearn.linear_model import LogisticRegression
@@ -74,19 +75,63 @@ def FeatureSelection(data):
     for f in rfe_log_features:
         print(f)
 
-    # Create csv file with only the relevant features
+    # Create data frame with only the relevant features
     cols_to_use = rfe_log_features.union(['class'])
     fs_output = data[cols_to_use]
-#    fs_output.to_csv(r'FeatureSelectionOutput.csv', index=False)
 #    
-    # Create csv file with test data and relevant features
+    # Create data frame with test data and relevant features
     test = Preprocessing(testPath)
     fs_test = test[cols_to_use]
-#    fs_test.to_csv(r'FeatureSelectionTestOutput.csv', index=False)
     
     return fs_output, fs_test
 
-def ModelSelection(trainData, testData):
+
+def ModelSelection(fsdata):
+    # import models
+    from sklearn.model_selection import StratifiedKFold
+    from sklearn.model_selection import cross_val_score
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+    from sklearn.dummy import DummyClassifier
+    from sklearn.naive_bayes import GaussianNB
+    from sklearn.svm import SVC
+    from sklearn.ensemble import RandomForestClassifier
+    
+    # load training dataset
+    dataset = fsdata
+    df = dataset.values
+    X  = df[:,0:-1]
+    Y = df[:,-1]
+    
+    
+    # prepare models
+    models = [( LogisticRegression(solver='lbfgs')),
+    ( LinearDiscriminantAnalysis()),
+    ( KNeighborsClassifier()),
+    ( DecisionTreeClassifier()),
+    ( GaussianNB()),
+    ( SVC(kernel='rbf', random_state=0, gamma=1, C=1)),
+    (DummyClassifier(strategy='most_frequent', random_state=0)),
+    (RandomForestClassifier())]
+    
+    names = ['LR','LDA','KNN','DT','NB','SVM','DC','RF']
+    
+    scores = []
+    scores2 = []
+    # use stratified kfold cross-validation to test models
+    for model in models:
+        skf = StratifiedKFold(n_splits=5, shuffle=False, random_state=None)
+        cv = cross_val_score(model, X, Y, cv=skf, scoring='accuracy')
+        scores.append(cv.mean())
+        scores2.append(cv.std())
+                
+    results = [list(a) for a in zip(names, scores, scores2)]
+    print (results)
+
+
+def ModelTuning(trainData, testData):
     data_train = trainData
     data_train.shape
     
@@ -155,22 +200,158 @@ def ModelSelection(trainData, testData):
     # Apply best values of hyperparameters to the model.
     rf_tuned = rf_random.best_estimator_
     
-    # Train the tuned model on TRAIN set and check the accuracy
+    # Train the tuned model on TRAIN set and check the accuracy 
+    ##Added a couple of lines to capture the time to build the trained model
+    start_time = time.time()
     rf_tuned.fit(X_train, y_train)
+    finish_time = time.time()
+    print("Time to build model: " + str((finish_time - start_time)))
+    
     rf_tuned_score = rf_tuned.score(X_test,y_test)
     print(rf_tuned_score)
     
     # Build confusion matrix.
+    start_time = time.time()
     rf_tuned_cm = confusion_matrix(y_test, rf_tuned.predict(X_test))
+    finish_time = time.time()
     print(rf_tuned_cm)
+    ##Added a couple of lines to capture the time to build the test model
+    print("Time to test model: " + str((finish_time - start_time)))
+    
+    ###input for model evaluator
+    data = pd.DataFrame(y_test, columns = ['label'])
+    data['predicted'] = rf_tuned.predict(X_test)
+    data['probability'] = rf_tuned.predict_proba(X_test)[:, 1]
     
     ## RF tuning Results
     
     print("RF default hyperparameters test accuracy: ", rf_score,', parameters: ', '\n', rf.get_params())
     print('Confusion matrix: ', '\n', rf_cm)
-    print()
+#    print()
     print("RF tuned hyperparameters test accuracy: ", rf_tuned_score,', parameters: ', '\n', rf_tuned.get_params())
     print('Confusion matrix: ', '\n', rf_tuned_cm)
+          
+    return data
+
+          
+##Evaluates the performance of a binary classifier against labelled data.
+# @param model_name - string of model name
+# @param data - a dataframe containing 3 columns: class (binary values), predicted(binary values) and probability (the predicition the model has made for each value, prior to converting to a binary classification, number between 0 and 1).
+          
+# @returns - Confusion matrix plot, ROC curve plot, and a small report.    
+    
+def ModelEvaluator(model_name,data): 
+    from sklearn import metrics
+    from sklearn.metrics import confusion_matrix
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+    from matplotlib.ticker import FixedLocator, FixedFormatter
+
+   #partition processed data into vectors
+    actualClass = data.label
+    predictedClass = data.predicted
+    probability = data.probability 
+    
+    #build a confusion matrix
+    cm = confusion_matrix(actualClass, predictedClass, labels = [0,1])
+    
+    TruePositive = cm[1, 1]
+    TrueNegative = cm[0,0]
+    FalsePositive = cm[0,1]
+    FalseNegative = cm[1,0]
+    
+    numberOfPositives = TruePositive + FalseNegative
+    numberOfNegatives = TrueNegative + FalsePositive
+    
+    #calculate the Null accuracy
+    null_accuracy = 1 - actualClass.mean()
+    
+    #define the model accuracy
+    model_accuracy = metrics.accuracy_score(actualClass, predictedClass)
+    
+    #Generate a metrics report
+    report = metrics.classification_report(actualClass, predictedClass, output_dict = True)
+  
+    #calculate the model performance over the null accuracy
+    performance_over_null = model_accuracy - null_accuracy
+    
+    #Calculate the Specificity of the model 
+    specificity = TrueNegative / (TrueNegative + FalsePositive)
+    
+    #Calculate the True positive rate, false positive rate, and thresholds to plot a rock curve
+    fpr, tpr, thresholds = metrics.roc_curve(actualClass, probability)
+    
+    #Calculate the Area under the ROC Curve
+    rocAuc = metrics.roc_auc_score(actualClass, probability)
+    
+    #Calculate the Michaels Correlation Coefficient
+    mcc = metrics.matthews_corrcoef(actualClass, predictedClass)
+    
+    #generate figure
+    fig = plt.figure(figsize = (10, 5))
+    spec = gridspec.GridSpec(ncols=2, nrows=2, wspace=0.5, hspace = 0.8, width_ratios=[1, 1], height_ratios = [1, 20],  figure=fig)
+    
+    text = fig.add_subplot(spec[0,0])
+    text.axis('off')
+    text. set_title('%s' % (model_name), fontweight = 'bold', fontsize = 16) 
+    text.text(0,0,'The performance of this model over the null accuracy is %2.2f%%\nModel Sensitivity: %2.6f%% \nModel Specificity: %2.6f%% \nModel F1 Score: %2.6f \nMatthews Correlation Coeffiecient: %2.6f' 
+      % ((performance_over_null *100), (report['1.0']['recall']*100), (specificity*100), (report['1.0']['f1-score']), mcc), bbox=dict(facecolor='white'), verticalalignment="top")
+    
+    
+    #plot confusion matrix in pos 0,0
+    confusionMatrixLabels = ['Normal Traffic', 'Intrusion']
+    confusionMatrixColourMap = plt.cm.Blues
+    confusionMatrix = fig.add_subplot(spec[1,0])
+    confusionMatrix.set_aspect('equal')
+    confusionMatrix.imshow(cm, interpolation = 'nearest', cmap = confusionMatrixColourMap)
+    confusionMatrix.set(ylabel ='True class', xlabel ='Predicted class')
+    #confusionMatrix.xlabel(labelpad=5)
+            
+    confusionMatrix.set_xticks(np.arange(0,2))
+    formatter = FixedFormatter(['Normal Traffic', 'Intrusion'])
+    locator = FixedLocator([0,1])
+    
+    confusionMatrix.yaxis.set_major_formatter(formatter)
+    confusionMatrix.yaxis.set_major_locator(locator)
+    confusionMatrix.xaxis.set_major_formatter(formatter)
+    confusionMatrix.xaxis.set_major_locator(locator)
+    
+    #confusionMatrix.set_yticks(np.arange(0,2))
+    #confusionMatrix.set_xticklabels(np.arange(0,1), confusionMatrixLabels, fontdict = None)
+    
+    tot = sum(data.label)
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            confusionMatrix.text(j, i, (format(cm[i, j])),ha ='center', va="baseline", color="white" if cm[i,j] > (0.5*tot) else 'black', size = 'larger')
+    
+   
+    cmLabels = ['TN', 'FP', 'FN', 'TP' ]
+    a = 0
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            confusionMatrix.text(j + 0.3, i + 0.4, (cmLabels[a]), ha ='center', va="baseline", color="white" if cm[i,j] >(0.5*tot) else 'black', size = 'larger')
+            if a < 4:
+                a += 1
+    a=0          
+    for i in range(cm.shape[a]):
+        if a == 0:
+            confusionMatrix.text(j+0.8, i, ('Total:\n %d' % (numberOfNegatives)), ha ='center', va="center", color = 'black', size = 'larger')
+            a += 1
+        else:
+            confusionMatrix.text(j+0.8, i, ('Total:\n %d' % (numberOfPositives)), ha ='center', va="center", color = 'black', size = 'larger')
+    
+    #plot roc curve in position 0,1 
+    rocCurve = fig.add_subplot(spec[1, 1])
+    rocCurve.set_aspect('equal')
+    rocCurve.plot(fpr, tpr, color='red', lw=2, label = 'ROC area = %0.5f)' % rocAuc )
+    rocCurve.set(xlabel = 'False Positive Rate (1-Specifcity)', ylabel = 'True Positive Rate (Sensitivity)' )
+    rocCurve.legend(loc="lower right")
+    
+    
+    #print(report)
+    #path = '/Users/scotttasker/Documents/Birkbeck/aml/'
+    #fig.savefig(path + '%s.pdf' % (model_name), dpi = 300) 
+ 
 
 # Calling the functions sequentially
     
@@ -180,8 +361,13 @@ trainData = Preprocessing(trainPath)
 # Feature select train and test sets
 FSTrainData, FSTestData = FeatureSelection(trainData)
 
-# Show results
-ModelSelection(FSTrainData, FSTestData)
+# Print models and their scores
+ModelSelection(FSTrainData)
 
+# Show results
+tunedOutput = ModelTuning(FSTrainData, FSTestData)
+
+# Show evaluation
+ModelEvaluator('Random Forest', tunedOutput)
 
 
