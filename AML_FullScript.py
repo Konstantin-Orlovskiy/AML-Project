@@ -106,28 +106,36 @@ def ModelSelection(fsdata):
     Y = df[:,-1]
     
     
-    # prepare models
+ # run against dummy classifier
+    dc = (DummyClassifier(strategy='stratified', random_state=0))
+    dskf = StratifiedKFold(n_splits=5, shuffle=False, random_state=None)
+    dcv = cross_val_score(dc, X, Y, cv=skf, scoring='accuracy')
+    dcvm = dcv.mean()
+    print (dcvm)
+   
+ # prepare models
     models = [( LogisticRegression(solver='lbfgs')),
     ( LinearDiscriminantAnalysis()),
     ( KNeighborsClassifier()),
     ( DecisionTreeClassifier()),
     ( GaussianNB()),
     ( SVC(kernel='rbf', random_state=0, gamma=1, C=1)),
-    (DummyClassifier(strategy='most_frequent', random_state=0)),
-    (RandomForestClassifier())]
-    
-    names = ['LR','LDA','KNN','DT','NB','SVM','DC','RF']
-    
+    (RandomForestClassifier(n_estimators=100))]
+
+    names = ['LR','LDA','KNN','DT','NB','SVM','RF']
+
+
     scores = []
     scores2 = []
+    scorevsdefault = []
     # use stratified kfold cross-validation to test models
     for model in models:
-        skf = StratifiedKFold(n_splits=5, shuffle=False, random_state=None)
-        cv = cross_val_score(model, X, Y, cv=skf, scoring='accuracy')
-        scores.append(cv.mean())
-        scores2.append(cv.std())
-                
-    results = [list(a) for a in zip(names, scores, scores2)]
+       skf = StratifiedKFold(n_splits=5, shuffle=False, random_state=None)
+       cv = cross_val_score(model, X, Y, cv=skf, scoring='accuracy')
+       scores.append(cv.mean())
+       scores2.append(cv.std())
+       scorevsdefault.append('%' + str((float(cv.mean()- dcvm)/float(cv.mean()))*100))                         
+    results = [list(a) for a in zip(names, scores, scores2, scorevsdefault)]
     print (results)
 
 
